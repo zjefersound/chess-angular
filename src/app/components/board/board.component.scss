@@ -34,7 +34,7 @@
 }
 
 .board-row .board-block {
-  --block-size: 64px;
+  --block-size: min(64px, 12vw);
   height: var(--block-size);
   width: var(--block-size);
   background: rgb(231, 217, 195);
