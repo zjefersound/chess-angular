@@ -1,0 +1,13 @@
+[build]
+  command = "npm run build"
+  publish = "dist/chess-angular"
+
+[build.environment]
+  NODE_VERSION = "16"
+
+# Angular usa roteamento client-side (Router), então todas as rotas
+# precisam cair no index.html para o Angular Router assumir o controle.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
