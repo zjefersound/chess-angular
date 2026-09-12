@@ -28,7 +28,10 @@ export class PieceMovement {
     this.currentField = currentField;
     this.currentPlayer = currentPlayer;
     this.moveHistory = moveHistory;
-    this.dominatedFields = dominatedFields;
+    this.dominatedFields = dominatedFields || {
+      black: [],
+      white: [],
+    };
   }
 
   setBoard(board: ChessField[][]) {
@@ -173,30 +176,51 @@ export class PieceMovement {
     const secondRook = this.board[row]?.[this.board[0].length - 1];
 
     const filterCastleMoves = (move: number[]) => {
-      const isFirstMove = !hasBeenMoved;
       const tempColumn = move[1];
+      if (getOnlyCaptureFields) return Math.abs(tempColumn - column) <= 1;
+      const isFirstMove = !hasBeenMoved;
       const isFirstCastleAllowed =
         (isFirstMove &&
           firstRook?.piece &&
           !firstRook?.hasBeenMoved &&
-          !this.board[row]?.[column - 1].piece) ||
+          !this.board[row]?.[column - 1].piece &&
+          !this.board[row]?.[column - 2]?.piece) ||
         tempColumn > column - 2;
       const isSecondCastleAllowed =
         (isFirstMove &&
           secondRook?.piece &&
           !secondRook?.hasBeenMoved &&
-          !this.board[row]?.[column + 1].piece) ||
+          !this.board[row]?.[column + 1].piece &&
+          !this.board[row]?.[column + 2]?.piece) ||
         tempColumn < column + 2;
       const isCastleAllowed = isFirstCastleAllowed && isSecondCastleAllowed;
       return isCastleAllowed;
     };
 
+    const currentColor = this.currentPlayer === 'white' ? 'black' : 'white';
+    if (
+      !getOnlyCaptureFields &&
+      !this.dominatedFields[currentColor]?.length
+    ) {
+      this.dominatedFields[currentColor] =
+        this.getDominatedFieldsByColor(currentColor);
+    }
+    const attackedFields = getOnlyCaptureFields
+      ? []
+      : this.dominatedFields[currentColor].map((move) => move.join(','));
+
     const filterAttackedFields = (move: number[]) => {
       if (getOnlyCaptureFields) return true;
-      const currentColor = this.currentPlayer === 'white' ? 'black' : 'white';
-      return !this.dominatedFields[currentColor]
-        .map((move) => move.join(','))
-        .includes(move.join(','));
+      if (Math.abs(move[1] - column) === 2) {
+        const passThroughColumn = (column + move[1]) / 2;
+        if (
+          attackedFields.includes(`${row},${column}`) ||
+          attackedFields.includes(`${row},${passThroughColumn}`)
+        ) {
+          return false;
+        }
+      }
+      return !attackedFields.includes(move.join(','));
     };
 
     const validMoves = defaultMoves
@@ -215,7 +239,12 @@ export class PieceMovement {
   rook(field: ChessField, getOnlyCaptureFields?: boolean) {
     const { column, row, piece } = field;
 
-    const defaultMoves = Utils.getStraightMoves(this.board, row, column);
+    const defaultMoves = Utils.getStraightMoves(
+      this.board,
+      row,
+      column,
+      getOnlyCaptureFields
+    );
 
     const clearInvalidFields = (move: number[]) => {
       const row = move[0];
@@ -241,7 +270,12 @@ export class PieceMovement {
   bishop(field: ChessField, getOnlyCaptureFields?: boolean) {
     const { column, row, piece } = field;
 
-    const defaultMoves = Utils.getDiagonalMoves(this.board, row, column);
+    const defaultMoves = Utils.getDiagonalMoves(
+      this.board,
+      row,
+      column,
+      getOnlyCaptureFields
+    );
 
     const clearInvalidFields = (move: number[]) => {
       const row = move[0];
@@ -268,8 +302,18 @@ export class PieceMovement {
     const { column, row, piece } = field;
 
     const defaultMoves = [
-      ...Utils.getStraightMoves(this.board, row, column),
-      ...Utils.getDiagonalMoves(this.board, row, column),
+      ...Utils.getStraightMoves(
+        this.board,
+        row,
+        column,
+        getOnlyCaptureFields
+      ),
+      ...Utils.getDiagonalMoves(
+        this.board,
+        row,
+        column,
+        getOnlyCaptureFields
+      ),
     ];
 
     const clearInvalidFields = (move: number[]) => {
@@ -350,6 +394,14 @@ export class PieceMovement {
   }
   getMoves() {
     return this.getMovesByPiece(this.currentField);
+  }
+
+  getDominatedFieldsByColor(color: 'black' | 'white') {
+    const previousPlayer = this.currentPlayer;
+    this.currentPlayer = color;
+    const dominated = this.getDominatedFieldsByCurrentPlayer();
+    this.currentPlayer = previousPlayer;
+    return dominated;
   }
 
   getDominatedFieldsByCurrentPlayer() {

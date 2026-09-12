@@ -17,6 +17,11 @@ export class BoardService {
   constructor() {}
 
   createBoard(rows: number, columns: number) {
+    this.dominatedFields = {
+      black: [],
+      white: [],
+    };
+    this.moveHistory = [];
     return Array(rows)
       .fill(0)
       .map((_, row) => {
