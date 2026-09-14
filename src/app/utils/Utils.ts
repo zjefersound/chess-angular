@@ -4,7 +4,8 @@ export default class Utils {
   static getStraightMoves(
     board: ChessField[][],
     currentRow: number,
-    currentColumn: number
+    currentColumn: number,
+    xrayPiece?: string | null
   ): number[][] {
     let moves: number[][] = [];
 
@@ -21,7 +22,9 @@ export default class Utils {
       if (!isCurrentField) moves = [...moves, [row, column]];
 
       const hasPiece = Boolean(field.piece);
-      if (!isCurrentField && hasPiece) return;
+      const isXrayedThrough =
+        hasPiece && xrayPiece != null && field.piece === xrayPiece;
+      if (!isCurrentField && hasPiece && !isXrayedThrough) return;
 
       const nextRow =
         row + (direction === 'top' ? -1 : direction === 'bottom' ? 1 : 0);
@@ -42,7 +45,8 @@ export default class Utils {
   static getDiagonalMoves(
     board: ChessField[][],
     currentRow: number,
-    currentColumn: number
+    currentColumn: number,
+    xrayPiece?: string | null
   ): number[][] {
     let moves: number[][] = [];
 
@@ -60,7 +64,9 @@ export default class Utils {
       if (!isCurrentField) moves = [...moves, [row, column]];
 
       const hasPiece = Boolean(field.piece);
-      if (!isCurrentField && hasPiece) return;
+      const isXrayedThrough =
+        hasPiece && xrayPiece != null && field.piece === xrayPiece;
+      if (!isCurrentField && hasPiece && !isXrayedThrough) return;
 
       const nextRow = row + (rowDirection === 'top' ? -1 : 1);
       const nextColumn = column + (columnDirection === 'left' ? -1 : 1);

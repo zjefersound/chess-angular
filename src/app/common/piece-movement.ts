@@ -35,6 +35,20 @@ export class PieceMovement {
     this.board = board;
   }
 
+  // A sliding piece's attack "sees through" the enemy king: if the king is in
+  // check along a rank/file/diagonal, the square directly behind it (on the
+  // far side, away from the attacker) is still attacked, because the king
+  // can't step there to escape the check. This only matters when computing
+  // dominated fields (i.e. which squares the opponent's king may not enter),
+  // not when listing a piece's own regular moves - a piece still can't
+  // actually move/capture past the king on this turn.
+  private getEnemyKingPiece(piece: string | null | undefined) {
+    const color = piece?.split('-')[0];
+    if (!color) return undefined;
+    const enemyColor = color === EColor.white ? EColor.black : EColor.white;
+    return `${enemyColor}-${EPiece.King}`;
+  }
+
   private clearFieldsWithObstacles(
     move: number[],
     piece: string,
@@ -215,7 +229,15 @@ export class PieceMovement {
   rook(field: ChessField, getOnlyCaptureFields?: boolean) {
     const { column, row, piece } = field;
 
-    const defaultMoves = Utils.getStraightMoves(this.board, row, column);
+    const xrayPiece = getOnlyCaptureFields
+      ? this.getEnemyKingPiece(piece)
+      : undefined;
+    const defaultMoves = Utils.getStraightMoves(
+      this.board,
+      row,
+      column,
+      xrayPiece
+    );
 
     const clearInvalidFields = (move: number[]) => {
       const row = move[0];
@@ -241,7 +263,15 @@ export class PieceMovement {
   bishop(field: ChessField, getOnlyCaptureFields?: boolean) {
     const { column, row, piece } = field;
 
-    const defaultMoves = Utils.getDiagonalMoves(this.board, row, column);
+    const xrayPiece = getOnlyCaptureFields
+      ? this.getEnemyKingPiece(piece)
+      : undefined;
+    const defaultMoves = Utils.getDiagonalMoves(
+      this.board,
+      row,
+      column,
+      xrayPiece
+    );
 
     const clearInvalidFields = (move: number[]) => {
       const row = move[0];
@@ -267,9 +297,12 @@ export class PieceMovement {
   queen(field: ChessField, getOnlyCaptureFields?: boolean) {
     const { column, row, piece } = field;
 
+    const xrayPiece = getOnlyCaptureFields
+      ? this.getEnemyKingPiece(piece)
+      : undefined;
     const defaultMoves = [
-      ...Utils.getStraightMoves(this.board, row, column),
-      ...Utils.getDiagonalMoves(this.board, row, column),
+      ...Utils.getStraightMoves(this.board, row, column, xrayPiece),
+      ...Utils.getDiagonalMoves(this.board, row, column, xrayPiece),
     ];
 
     const clearInvalidFields = (move: number[]) => {
